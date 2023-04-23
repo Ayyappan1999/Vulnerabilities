@@ -23,11 +23,11 @@ In some situations, an attacker can escalate a SQL injection attack to compromis
 ### Retrieving hidden data
   Consider a shopping application that displays products in different categories. When the user clicks on the Gifts category, their browser requests the URL:
 
-  ## https://insecure-website.com/products?category=Gifts
+  ### https://insecure-website.com/products?category=Gifts
 
   This causes the application to make a SQL query to retrieve details of the relevant products from the database:
 
-  ## SELECT * FROM products WHERE category = 'Gifts' AND released = 1
+  ### SELECT * FROM products WHERE category = 'Gifts' AND released = 1
  
 <pre>
 This SQL query asks the database to return:
@@ -40,19 +40,33 @@ The restriction released = 1 is being used to hide products that are not release
 
 The application doesn't implement any defenses against SQL injection attacks, so an attacker can construct an attack like:
 </pre>
-  ## https://insecure-website.com/products?category=Gifts'--
+  ### https://insecure-website.com/products?category=Gifts'--
 
 This results in the SQL query:
 
-  ## SELECT * FROM products WHERE category = 'Gifts'--' AND released = 1
+  ### SELECT * FROM products WHERE category = 'Gifts'--' AND released = 1
 
 The key thing here is that the double-dash sequence -- is a comment indicator in SQL, and means that the rest of the query is interpreted as a comment. This effectively removes the remainder of the query, so it no longer includes AND released = 1. This means that all products are displayed, including unreleased products.
 
 Going further, an attacker can cause the application to display all the products in any category, including categories that they don't know about:
 
-  ## https://insecure-website.com/products?category=Gifts'+OR+1=1--
+  ### https://insecure-website.com/products?category=Gifts'+OR+1=1--
 
 This results in the SQL query:
 
-  ## SELECT * FROM products WHERE category = 'Gifts' OR 1=1--' AND released = 1
+  ### SELECT * FROM products WHERE category = 'Gifts' OR 1=1--' AND released = 1
 The modified query will return all items where either the category is Gifts, or 1 is equal to 1. Since 1=1 is always true, the query will return all items.
+
+### Retrieving data from other database tables
+In cases where the results of a SQL query are returned within the application's responses, an attacker can leverage a SQL injection vulnerability to retrieve data from other tables within the database. This is done using the UNION keyword, which lets you execute an additional SELECT query and append the results to the original query.
+
+For example, if an application executes the following query containing the user input "Gifts":
+
+### SELECT name, description FROM products WHERE category = 'Gifts'
+
+then an attacker can submit the input:
+
+### ' UNION SELECT username, password FROM users--
+
+This will cause the application to return all usernames and passwords along with the names and descriptions of products.
+
