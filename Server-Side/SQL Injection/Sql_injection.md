@@ -84,3 +84,53 @@ then an attacker can submit the input:
 
 This will cause the application to return all usernames and passwords along with the names and descriptions of products.
 
+
+
+
+
+# SQL injection UNION attacks
+
+When an application is vulnerable to SQL injection and the results of the query are returned within the application's responses, the UNION keyword can be used to retrieve data from other tables within the database. This results in a SQL injection UNION attack.
+
+The UNION keyword lets you execute one or more additional SELECT queries and append the results to the original query. For example:
+
+### SELECT a, b FROM table1 UNION SELECT c, d FROM table2
+
+This SQL query will return a single result set with two columns, containing values from columns a and b in table1 and columns c and d in table2.
+
+For a UNION query to work, two key requirements must be met:
+
+-> The individual queries must return the same number of columns.
+-> The data types in each column must be compatible between the individual queries.
+To carry out a SQL injection UNION attack, you need to ensure that your attack meets these two requirements. This generally involves figuring out:
+
+-> How many columns are being returned from the original query?
+-> Which columns returned from the original query are of a suitable data type to hold the results from the injected query?
+
+## Determining the number of columns required in a SQL injection UNION attack
+<pre>
+When performing a SQL injection UNION attack, there are two effective methods to determine how many columns are being returned from the original query.
+
+The first method involves injecting a series of ORDER BY clauses and incrementing the specified column index until an error occurs. For example, assuming the injection point is a quoted string within the WHERE clause of the original query, you would submit:
+
+' ORDER BY 1--
+' ORDER BY 2--
+' ORDER BY 3--
+etc.
+
+This series of payloads modifies the original query to order the results by different columns in the result set. The column in an ORDER BY clause can be specified by its index, so you don't need to know the names of any columns. When the specified column index exceeds the number of actual columns in the result set, the database returns an error, such as:
+
+The ORDER BY position number 3 is out of range of the number of items in the select list.
+
+The application might actually return the database error in its HTTP response, or it might return a generic error, or simply return no results. Provided you can detect some difference in the application's response, you can infer how many columns are being returned from the query.
+
+The second method involves submitting a series of UNION SELECT payloads specifying a different number of null values:
+
+' UNION SELECT NULL--
+' UNION SELECT NULL,NULL--
+' UNION SELECT NULL,NULL,NULL--
+etc.
+
+If the number of nulls does not match the number of columns, the database returns an error, such as:
+</pre>
+All queries combined using a UNION, INTERSECT or EXCEPT operator must have an equal number of expressions in their target lists.
